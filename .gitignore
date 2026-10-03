@@ -1,0 +1,34 @@
+# Python & Virtual Environments
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+venv/
+env/
+.env
+
+# Jupyter Notebooks
+.ipynb_checkpoints/
+
+# Data (Ignore all files inside, but keep the folders)
+data/raw/*
+!data/raw/.gitkeep
+data/processed/*
+!data/processed/.gitkeep
+
+# ML Model Weights & Serialized Objects
+*.pt
+*.pth
+*.h5
+*.pkl
+*.bin
+*.onnx
+*.safetensors
+
+# Hugging Face Cache
+.cache/huggingface/
+
+# IDEs & OS
+.vscode/
+.idea/
+.DS_Store
