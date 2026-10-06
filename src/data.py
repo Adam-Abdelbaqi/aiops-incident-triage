@@ -19,7 +19,8 @@ def load_data(filepath: str , date_col:str = "created_date")-> pd.DataFrame:
     # Sort The Dataset Chornologically
     df[date_col] = pd.to_datetime(df[date_col])
     df = df.sort_values(date_col).reset_index(drop=True)
-
+    
+    print(f"The Dataset shape is {df.shape} with {df.shape[0]} Number of Rows and {df.shape[1]} Number of Columns")
     return df
 
 def time_based_split(df: pd.DataFrame , train_size: float = 0.8):
