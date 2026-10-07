@@ -2,13 +2,25 @@ from sklearn.ensemble import RandomForestClassifier
 import pandas as pd
 
 class RandomForestModel:
-    def __init__(self , n_estimators = 200 ,random_state = 42):
-        """
-        Initialize The RandomForest Classifier.
-        """
+
+    def __init__(self, n_estimators=200, max_depth=None, max_features="sqrt", min_samples_split=2, class_weight=None, random_state=42):
+        
+        
         self.n_estimators = n_estimators
+        self.max_depth = max_depth
+        self.max_features = max_features
+        self.min_samples_split = min_samples_split
+        self.class_weight = class_weight
         self.random_state = random_state
-        self.model = RandomForestClassifier(n_estimators= self.n_estimators , random_state = self.random_state)    
+
+        self.model = RandomForestClassifier(
+            n_estimators=self.n_estimators,
+            max_depth=self.max_depth,
+            max_features=self.max_features,
+            min_samples_split=self.min_samples_split,
+            class_weight=self.class_weight,
+            random_state=self.random_state)
+    
         self.is_fitted = False
        
 
