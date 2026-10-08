@@ -6,13 +6,13 @@ class EmbeddingReduction(BaseEstimator , TransformerMixin):
     def __init__(self , n_components = 30 , random_state = 42):
         self.n_components = n_components
         self.random_state = random_state
-        self.pca = PCA(self.n_components , self.random_state)
+        self.pca = PCA(n_components= self.n_components , random_state= self.random_state)
 
     def fit(self , X , y=None):
         self.pca.fit(X)
         
         variance = self.pca.explained_variance_ratio_.sum()
-        print(f"Fitted PCA: Reduced to {self.n_components_} Components.")
+        print(f"Fitted PCA: Reduced to {self.n_components} Components.")
         print(f"Retained Variance Explained is {variance * 100:.2f}%")
 
         return self
