@@ -60,7 +60,10 @@ def test_type_conversion_does_not_modify_original():
 
     type_conversion(df)
 
-    pd.testing.assert_series_equal(df.dtypes, original_dtypes)
+    pd.testing.assert_series_equal(
+        df.dtypes,
+        original_dtypes
+    )
 
 
 def test_type_conversion_missing_columns():
