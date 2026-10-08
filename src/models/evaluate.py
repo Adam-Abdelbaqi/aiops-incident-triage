@@ -34,7 +34,7 @@ def calculate_metrics(y_test:pd.Series , preds):
         "recall_weighted" : recall_score(y_test , preds , average="weighted"),
         "f1_weighted" : f1_score(y_test , preds , average= "weighted"),
         "f1_macro" : f1_score(y_test , preds , average= "macro"),
-        "classification_report" : classification_report(y_test , preds)
+        "classification_report" : classification_report(y_test , preds , output_dict= True)
     }
     return metrics
 
@@ -50,12 +50,14 @@ def evaluate_model(model , X_test:pd.DataFrame , y_test: pd.Series):
     return metrics
 
 
-def plot_confusion_matrix(y_test:pd.Series , preds , labels = None , title = "Confusion Matrix" , cmap = "Blues"):
+
+
+def plot_confusion_matrix(y_test:pd.Series , preds , title = "Confusion Matrix" , cmap = "Blues"):
 
     # Compute the Confusion Matrix Array
     cm = confusion_matrix(y_test , preds)
     # Set up Display Object
-    disp = ConfusionMatrixDisplay(confusion_matrix=cm , display_labels= labels)
+    disp = ConfusionMatrixDisplay(confusion_matrix=cm)
 
     # Render Plot
     fig , axes = plt.subplots(figsize = (6,6))
