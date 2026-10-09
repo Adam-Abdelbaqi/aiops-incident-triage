@@ -1,6 +1,7 @@
 import pandas as pd
 from sklearn.model_selection import RandomizedSearchCV
 from sklearn.ensemble import RandomForestClassifier
+from src.pipeline import build_pipeline
 
 
 def validate_tuning_data(X_train: pd.DataFrame,y_train: pd.Series):
@@ -29,21 +30,22 @@ def tune_hyperparameters(X_train:pd.DataFrame , y_train:pd.Series):
     # Validate training data
     validate_tuning_data(X_train , y_train)
 
-    # Base Random Forest
-    rf = RandomForestClassifier(random_state=42)
+    #Initialize the unfitted Base Pipeline
+    pipeline = build_pipeline()
+
 
     # Hyperparameter search space
     param_grid = {
-        "n_estimators": [100, 200, 300],
-        "max_depth": [10, 20, None],
-        "max_features": [0.6, 0.8],
-        "min_samples_split": [2, 8, 10],
-        "class_weight": [None, "balanced"]
+        "classifier__n_estimator": [100, 200, 300],
+        "classifier__max_depth": [10, 20, None],
+        "classifier__max_features": [0.6, 0.8],
+        "classifier__min_samples_split": [2, 8, 10],
+        "classifier__class_weight": [None, "balanced"]
     }
 
     # Randomized hyperparameter search
     random_search = RandomizedSearchCV(
-        estimator=rf,
+        estimator=pipeline,
         param_distributions=param_grid,
         n_iter=20,
         scoring="f1_macro",
@@ -55,6 +57,8 @@ def tune_hyperparameters(X_train:pd.DataFrame , y_train:pd.Series):
 
     # Run the search
     random_search.fit(X_train, y_train)
-
+    print("Best Parameters" , random_search.best_params_)
+    
+    # Return the fully fitted pipeline, ready to call .predict()
     return random_search.best_params_
    
