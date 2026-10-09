@@ -27,7 +27,7 @@ class TabularExtractor(BaseEstimator , TransformerMixin):
 
     def transform(self , X:pd.DataFrame):
         """
-        Applies Transformation  (dropping , rolling , encoding)
+        Applies Transformation (dropping, encoding, stateless temporal features)
         """
         X_transformed = X.copy()
         # Drop redundant columns that either cause data leakage or has no predictive power
@@ -48,17 +48,7 @@ class TabularExtractor(BaseEstimator , TransformerMixin):
         # 3. Temporal Engineering & Target Leakage Prevention
         if self.date_col in X_transformed.columns:
             X_transformed[self.date_col] = pd.to_datetime(X_transformed[self.date_col])
-            dates_only = X_transformed[self.date_col].dt.date
-            
-            # Calculate Global Velocity: Trailing 3-day volume
-            daily_volume = X_transformed.groupby(dates_only).size()
-            
-            # .shift(1) pushes the sums down one day so today's prediction only uses yesterday's totals
-            trailing_3d_volume = daily_volume.rolling(window=3, min_periods=1).sum().shift(1).fillna(0)
-            
-            # Map the shifted rolling metric back to the dataframe
-            X_transformed['global_volume_past_3d'] = dates_only.map(trailing_3d_volume)
-
+           
             # Extract basic numeric temporal features
             X_transformed['created_dayofweek'] = X_transformed[self.date_col].dt.dayofweek
             X_transformed['is_weekend'] = X_transformed['created_dayofweek'].isin([5, 6]).astype(int)
