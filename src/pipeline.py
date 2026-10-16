@@ -2,7 +2,7 @@ from src.features.feature_engineering import TabularExtractor
 from src.features.feature_extraction import TransformerExtractor
 from sklearn.linear_model import LogisticRegression
 from sklearn.pipeline import Pipeline , FeatureUnion
-from sklearn.preprocessing import FunctionTransformer , OneHotEncoder
+from sklearn.preprocessing import OneHotEncoder
 import pandas as pd
 import numpy as np
 
@@ -34,7 +34,7 @@ def tabular_to_numpy(X: pd.DataFrame) -> np.ndarray:
     return X.to_numpy(dtype=np.float32)
 
 
-def build_pipeline(C = 1.0):
+def build_pipeline(C = 100.0):
     """Combine text features, tabular features, and the classifier."""
 
     text_pipeline = Pipeline(
