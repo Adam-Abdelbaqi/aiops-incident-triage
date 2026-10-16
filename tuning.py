@@ -102,54 +102,59 @@ def tune_hyperparameters(X_train:pd.DataFrame , y_train:pd.Series):
 
 
 
-# 1. Load the dataset
-DATA_PATH = r"data/raw/tickets_clean.csv"
+def main():
+    # 1. Load the dataset
+    DATA_PATH = r"data/raw/tickets_clean.csv"
 
-df = load_data(DATA_PATH)
+    df = load_data(DATA_PATH)
 
-# 2. Inspect missing values
-missing_percentages = check_missings(df)
+    # 2. Inspect missing values
+    missing_percentages = check_missings(df)
 
-print("\nMissing values (%):")
-print(missing_percentages[missing_percentages > 0])
+    print("\nMissing values (%):")
+    print(missing_percentages[missing_percentages > 0])
 
-# 3. Convert the specified column types
-df = type_conversion(df)
+    # 3. Convert the specified column types
+    df = type_conversion(df)
 
-# 4. Split chronologically: earlier incidents train the model,
-#    later incidents evaluate it.
-train_df, test_df = time_based_split(df, train_size=0.8)
+    # 4. Split chronologically: earlier incidents train the model,
+    #    later incidents evaluate it.
+    train_df, test_df = time_based_split(df, train_size=0.8)
 
-# 5. Separate features and target
-X_train = train_df.drop(columns=["priority"])
-y_train = train_df["priority"].astype(str)
+    # 5. Separate features and target
+    X_train = train_df.drop(columns=["priority"])
+    y_train = train_df["priority"].astype(str)
 
-X_test = test_df.drop(columns=["priority"])
-y_test = test_df["priority"].astype(str)
+    X_test = test_df.drop(columns=["priority"])
+    y_test = test_df["priority"].astype(str)
 
-print(f"\nTraining samples: {len(X_train)}")
-print(f"Testing samples: {len(X_test)}")
-print(
-    f"Training date range: {train_df['created_date'].min()} "
-    f"to {train_df['created_date'].max()}"
-)
-print(
-    f"Testing date range: {test_df['created_date'].min()} "
-    f"to {test_df['created_date'].max()}"
-)
+    print(f"\nTraining samples: {len(X_train)}")
+    print(f"Testing samples: {len(X_test)}")
+    print(
+        f"Training date range: {train_df['created_date'].min()} "
+        f"to {train_df['created_date'].max()}"
+    )
+    print(
+        f"Testing date range: {test_df['created_date'].min()} "
+        f"to {test_df['created_date'].max()}"
+    )
 
-# 6. Inspect class distributions
-print("\nTraining priority distribution (%):")
-print((y_train.value_counts(normalize=True) * 100).round(2).sort_index())
+    # 6. Inspect class distributions
+    print("\nTraining priority distribution (%):")
+    print((y_train.value_counts(normalize=True) * 100).round(2).sort_index())
 
-print("\nTesting priority distribution (%):")
-print((y_test.value_counts(normalize=True) * 100).round(2).sort_index())
-
-
-
+    print("\nTesting priority distribution (%):")
+    print((y_test.value_counts(normalize=True) * 100).round(2).sort_index())
 
 
-tuning_results = tune_hyperparameters(X_train, y_train)
 
-best_params = tuning_results["best_params"]
-results_df = tuning_results["results"]
+
+
+    tuning_results = tune_hyperparameters(X_train, y_train)
+
+    best_params = tuning_results["best_params"]
+    results_df = tuning_results["results"]
+
+
+if __name__ == "__main__":
+    main()
