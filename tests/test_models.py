@@ -1,149 +1,193 @@
 import numpy as np
 import pandas as pd
 import pytest
-
+from sklearn.base import BaseEstimator , TransformerMixin
 from sklearn.exceptions import NotFittedError
+from sklearn.linear_model import LogisticRegression
+from sklearn.pipeline import Pipeline
 
-from src.models.classifier import RandomForestModel
-from src.features.dim_reducer import EmbeddingReduction
+import src.pipeline as pipeline_module
 
 
-def test_random_forest_fit():
+class DummyTextExtractor(BaseEstimator , TransformerMixin):
+    """Lightweight replacement for the real text embedding model."""
+
+    def __init__(
+        self,
+        text_columns=("subject", "description"),
+        model_name="all-MiniLM-L6-v2",
+        batch_size=32,
+    ):
+        self.text_columns = text_columns
+        self.model_name = model_name
+        self.batch_size = batch_size
+
+    def fit(self, X, y=None):
+        return self
+
+    def transform(self, X):
+        features = []
+
+        for _, row in X.iterrows():
+            subject = str(row["subject"])
+            description = str(row["description"])
+
+            features.append([
+                len(subject),
+                len(description),
+            ])
+
+        return np.asarray(features, dtype=np.float32)
+
+
+@pytest.fixture
+def sample_data():
+    """Create sample incident data for testing."""
+
     X = pd.DataFrame({
-        "feature_1": [1, 2, 3, 4, 5, 6],
-        "feature_2": [6, 5, 4, 3, 2, 1]})
+        "subject": [
+            "login issue",
+            "slow application",
+            "server outage",
+            "password reset",
+            "database error",
+            "network failure",
+            "display issue",
+            "service outage",
+            "account locked",
+            "slow database",
+            "server error",
+            "network issue",
+        ],
+        "description": [
+            "cannot login",
+            "application is slow",
+            "production server down",
+            "reset user password",
+            "database connection failed",
+            "network is unavailable",
+            "display formatting problem",
+            "service is unavailable",
+            "account access failure",
+            "database response is slow",
+            "server is not responding",
+            "network connection failed",
+        ],
+        "category": [
+            "Access", "Performance", "Infrastructure", "Access",
+            "Infrastructure", "Infrastructure", "Application",
+            "Infrastructure", "Access", "Performance",
+            "Infrastructure", "Infrastructure",
+        ],
+        "sub_category": [
+            "Login", "Latency", "Server", "Password",
+            "Database", "Network", "UI", "Server",
+            "Login", "Database", "Server", "Network",
+        ],
+    })
 
     y = pd.Series([
-        "Low", "Low", "Medium",
-        "Medium", "High", "High"])
+        "Low", "Medium", "Critical", "Low",
+        "High", "Critical", "Low", "High",
+        "Medium", "Medium", "Critical", "High",
+    ])
 
-    model = RandomForestModel(n_estimators=10, random_state=42)
-
-    result = model.fit(X, y)
-
-    assert result is model
-    assert model.is_fitted_
-    assert hasattr(model, "model_")
-    assert model.feature_names_ == ["feature_1", "feature_2"]
+    return X, y
 
 
-def test_random_forest_predict():
-    X_train = pd.DataFrame({
-        "feature_1": [1, 2, 3, 4, 5, 6],
-        "feature_2": [6, 5, 4, 3, 2, 1]})
+@pytest.fixture
+def model_pipeline(monkeypatch):
+    """Build the pipeline with its production configuration."""
 
-    y_train = pd.Series([
-        "Low", "Low", "Medium",
-        "Medium", "High", "High"])
+    monkeypatch.setattr(
+        pipeline_module,
+        "TransformerExtractor",
+        DummyTextExtractor,
+    )
 
-    X_test = pd.DataFrame({
-        "feature_1": [1.5, 3.5, 5.5],
-        "feature_2": [5.5, 3.5, 1.5]})
-
-    model = RandomForestModel(n_estimators=10, random_state=42)
-
-    model.fit(X_train, y_train)
-
-    predictions = model.predict(X_test)
-
-    assert isinstance(predictions, np.ndarray)
-    assert len(predictions) == len(X_test)
+    return pipeline_module.build_pipeline(C=100.0)
 
 
-def test_random_forest_predict_before_fit():
-    X_test = pd.DataFrame({
-        "feature_1": [1, 2],
-        "feature_2": [2, 1]})
+@pytest.fixture
+def fittable_pipeline(monkeypatch):
+    """Build a pipeline with more iterations for test-data fitting."""
 
-    model = RandomForestModel()
+    monkeypatch.setattr(
+        pipeline_module,
+        "TransformerExtractor",
+        DummyTextExtractor,
+    )
 
-    with pytest.raises(RuntimeError):
-        model.predict(X_test)
+    pipeline = pipeline_module.build_pipeline(C=100.0)
+    pipeline.named_steps["classifier"].set_params(max_iter=10000)
 
-
-def test_random_forest_feature_mismatch():
-    X_train = pd.DataFrame({
-        "feature_1": [1, 2, 3, 4],
-        "feature_2": [4, 3, 2, 1]})
-
-    y_train = pd.Series([
-        "Low", "Low", "High", "High"])
-
-    X_test = pd.DataFrame({
-        "feature_1": [1, 2, 3]})
-
-    model = RandomForestModel(n_estimators=10, random_state=42)
-
-    model.fit(X_train, y_train)
-
-    with pytest.raises(ValueError):
-        model.predict(X_test)
+    return pipeline
 
 
-def test_random_forest_numpy_input():
-    X = np.array([
-        [1, 6],
-        [2, 5],
-        [3, 4],
-        [4, 3],
-        [5, 2],
-        [6, 1]])
+def test_build_pipeline_returns_pipeline(model_pipeline):
+    assert isinstance(model_pipeline, Pipeline)
 
-    y = pd.Series([
-        "Low", "Low", "Medium",
-        "Medium", "High", "High"])
-
-    model = RandomForestModel(n_estimators=10, random_state=42)
-
-    model.fit(X, y)
-
-    predictions = model.predict(X)
-
-    assert isinstance(predictions, np.ndarray)
-    assert len(predictions) == len(X)
-    assert model.feature_names_ == ["component_1", "component_2"]
+    assert "features" in model_pipeline.named_steps
+    assert "classifier" in model_pipeline.named_steps
 
 
-def test_embedding_reduction_fit():
-    X = np.array([
-        [1.0, 2.0, 3.0],
-        [2.0, 4.0, 6.0],
-        [3.0, 6.0, 9.0],
-        [4.0, 8.0, 12.0],
-        [5.0, 10.0, 15.0]])
+def test_pipeline_uses_logistic_regression(model_pipeline):
+    classifier = model_pipeline.named_steps["classifier"]
 
-    reducer = EmbeddingReduction(n_components=2, random_state=42)
-
-    result = reducer.fit(X)
-
-    assert result is reducer
-    assert hasattr(reducer, "pca_")
+    assert isinstance(classifier, LogisticRegression)
+    assert classifier.C == 100.0
+    assert classifier.max_iter == 2000
+    assert classifier.random_state == 42
 
 
-def test_embedding_reduction_transform():
-    X = np.array([
-        [1.0, 2.0, 3.0],
-        [2.0, 4.0, 6.0],
-        [3.0, 6.0, 9.0],
-        [4.0, 8.0, 12.0],
-        [5.0, 10.0, 15.0]])
-
-    reducer = EmbeddingReduction(n_components=2, random_state=42)
-
-    reducer.fit(X)
-
-    X_reduced = reducer.transform(X)
-
-    assert isinstance(X_reduced, np.ndarray)
-    assert X_reduced.shape == (5, 2)
-
-
-def test_embedding_reduction_transform_before_fit():
-    X = np.array([
-        [1.0, 2.0, 3.0],
-        [2.0, 4.0, 6.0]])
-
-    reducer = EmbeddingReduction(n_components=2)
+def test_pipeline_predict_before_fit_raises(
+    model_pipeline,
+    sample_data,
+):
+    X, _ = sample_data
 
     with pytest.raises(NotFittedError):
-        reducer.transform(X)
+        model_pipeline.predict(X)
+
+
+def test_pipeline_fit_returns_self(fittable_pipeline, sample_data):
+    X, y = sample_data
+
+    result = fittable_pipeline.fit(X, y)
+
+    assert result is fittable_pipeline
+
+
+def test_pipeline_predict_returns_valid_output(
+    fittable_pipeline,
+    sample_data,
+):
+    X, y = sample_data
+
+    fittable_pipeline.fit(X, y)
+    predictions = fittable_pipeline.predict(X)
+
+    assert isinstance(predictions, np.ndarray)
+    assert predictions.shape == (len(X),)
+    assert set(predictions).issubset(set(y))
+
+
+def test_pipeline_handles_unseen_categories(
+    fittable_pipeline,
+    sample_data,
+):
+    X_train, y_train = sample_data
+
+    fittable_pipeline.fit(X_train, y_train)
+
+    X_new = pd.DataFrame({
+        "subject": ["new issue"],
+        "description": ["a previously unseen incident"],
+        "category": ["UnseenCategory"],
+        "sub_category": ["UnseenSubcategory"],
+    })
+
+    predictions = fittable_pipeline.predict(X_new)
+
+    assert predictions.shape == (1,)
+    assert predictions[0] in fittable_pipeline.classes_
