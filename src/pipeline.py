@@ -1,9 +1,8 @@
 from src.features.feature_engineering import TabularExtractor
 from src.features.feature_extraction import TransformerExtractor
-from src.features.dim_reducer import EmbeddingReduction
-from sklearn.ensemble import RandomForestClassifier
+from sklearn.linear_model import LogisticRegression
 from sklearn.pipeline import Pipeline , FeatureUnion
-from sklearn.preprocessing import FunctionTransformer
+from sklearn.preprocessing import FunctionTransformer , OneHotEncoder
 import pandas as pd
 import numpy as np
 
@@ -35,7 +34,7 @@ def tabular_to_numpy(X: pd.DataFrame) -> np.ndarray:
     return X.to_numpy(dtype=np.float32)
 
 
-def build_pipeline():
+def build_pipeline(C = 1.0):
     """Combine text features, tabular features, and the classifier."""
 
     text_pipeline = Pipeline(
@@ -48,13 +47,7 @@ def build_pipeline():
                     batch_size=32,
                 ),
             ),
-            (
-                "embedding_reduction",
-                EmbeddingReduction(
-                    n_components=30,
-                    random_state=42,
-                ),
-            ),
+            
         ])
 
     # The text columns are removed here because they are handled by the text branch.
@@ -63,21 +56,12 @@ def build_pipeline():
         steps=[
             (
                 "tabular_extractor",
-                TabularExtractor(
-                    cols_to_drop=[
-                        "status",
-                        "product_service",
-                        "category",
-                        "satisfaction_rating",
-                        "resolved_date",
-                        "ticket_id",
-                        "resolution",
-                        "subject",
-                        "description",
-                    ]
-                ),
+                TabularExtractor(categorical_features=('category' , 'sub_category')),
             ),
-        ("to_numpy" , FunctionTransformer(tabular_to_numpy))
+
+            ("Encoder" , OneHotEncoder(handle_unknown= "ignore")),
+
+        
         ])
 
     combined_features = FeatureUnion(
@@ -90,13 +74,7 @@ def build_pipeline():
     pipeline = Pipeline(
         steps=[
             ("features", combined_features),
-            (
-                "classifier",
-                RandomForestClassifier(
-                    n_estimators=200,
-                    random_state=42,
-                ),
-            ),
+            ("classifier", LogisticRegression(C= C, class_weight= None, max_iter= 2000, random_state= 42)),
         ]
     )
 

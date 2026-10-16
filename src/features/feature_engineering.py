@@ -2,60 +2,40 @@ import pandas as pd
 from sklearn.base import TransformerMixin , BaseEstimator
 
 class TabularExtractor(BaseEstimator , TransformerMixin):
-    def __init__(self , cols_to_drop = None , date_col = "created_date"):
+    def __init__(self , categorical_features = ('category' , 'sub_category'), date_col = "created_date"):
+        """Select the categorical features used by the tabular branch."""
 
-        if cols_to_drop is None:
-            self.cols_to_drop = ["status", "category", "satisfaction_rating", "resolved_date", "ticket_id", "resolution"]
-        else:
-            self.cols_to_drop = cols_to_drop
+        self.categorical_features = categorical_features
 
         self.date_col = date_col
         self.sub_category_map_ = {}
         self.department_map_ = {}
 
     def fit(self , X: pd.DataFrame , y = None):
-        """Learns the Feature Encodings from the Training set"""
 
-        if "sub_category" in X.columns:
-            # Calculate The Percentage of each sub_category appears in the training set
-            self.sub_category_map_ = X["sub_category"].value_counts(normalize= True).to_dict()
+        if not isinstance(X, pd.DataFrame):
+            raise TypeError("TabularExtractor expects a pandas DataFrame.")
 
-        if "department" in X.columns:
-            self.department_map_ = X["department"].value_counts(normalize=True).to_dict()
+        missing_columns = [col for col in self.categorical_features if col not in X.columns]
+
+        if missing_columns:
+            raise ValueError(f"Missing required features: {missing_columns}")
+
+        if "priority" in X.columns:
+            raise ValueError("Remove the target column 'priority' from X before fitting.")
 
         return self
 
     def transform(self , X:pd.DataFrame):
-        """
-        Applies Transformation (dropping, encoding, stateless temporal features)
-        """
-        X_transformed = X.copy()
-        # Drop redundant columns that either cause data leakage or has no predictive power
-        cols_to_remove = [col for col in self.cols_to_drop if col in X_transformed.columns]
-        X_transformed = X_transformed.drop(columns=cols_to_remove)
-
-        # 2. Apply Sub-Category And Department Frequency Encoding
-        if 'sub_category' in X_transformed.columns:
-            # Map the learned frequencies. Fill unseen test categories with 0 to prevent NaNs.
-            X_transformed['sub_category_encoded'] = X_transformed['sub_category'].map(self.sub_category_map_).fillna(0)
-            X_transformed = X_transformed.drop(columns=['sub_category'])
-
-        if 'department' in X_transformed.columns:
-            X_transformed["department_encoded"] = X_transformed["department"].map(self.department_map_).fillna(0)
-            X_transformed = X_transformed.drop(columns=["department"])
         
+        if not isinstance(X, pd.DataFrame):
+            raise TypeError("TabularExtractor expects a pandas DataFrame.")
 
-        # 3. Temporal Engineering & Target Leakage Prevention
-        if self.date_col in X_transformed.columns:
-            X_transformed[self.date_col] = pd.to_datetime(X_transformed[self.date_col])
-           
-            # Extract basic numeric temporal features
-            X_transformed['created_dayofweek'] = X_transformed[self.date_col].dt.dayofweek
-            X_transformed['is_weekend'] = X_transformed['created_dayofweek'].isin([5, 6]).astype(int)
-            
-            # Drop the raw datetime column as LightGBM requires numeric/encoded features
-            X_transformed = X_transformed.drop(columns=[self.date_col])
+        if "priority" in X.columns:
+            raise ValueError(
+                "The target column 'priority' must not be in X."
+            )
 
-        return X_transformed
+        return X.loc[:, list(self.categorical_features)].copy()
 
     
