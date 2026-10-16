@@ -103,7 +103,7 @@ def tune_hyperparameters(X_train:pd.DataFrame , y_train:pd.Series):
 
 
 # 1. Load the dataset
-DATA_PATH = r"C:\Users\Dell\Desktop\Adam\NLP Projects\AIOps Incident Triage\data\raw\tickets_clean.csv"
+DATA_PATH = r"data/raw/tickets_clean.csv"
 
 df = load_data(DATA_PATH)
 
