@@ -48,7 +48,7 @@ def tune_hyperparameters(X_train:pd.DataFrame , y_train:pd.Series):
     y_val = y_train.iloc[split_index:].copy()
 
     # Logisitic Regression Regularization paramter Candidates
-    C_values = [3.0, 5.0, 10.0, 20.0, 30.0]
+    C_values = [30.0 , 50.0 , 100.0]
     results = []
 
     for C in C_values:
